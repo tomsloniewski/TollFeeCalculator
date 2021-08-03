@@ -1,5 +1,5 @@
 ﻿using NUnit.Framework;
-using TollFeeCalculator.Helpers;
+using TollFeeCalculator.Calculator.Helpers;
 
 namespace TollFeeCalculator
 {
@@ -10,7 +10,7 @@ namespace TollFeeCalculator
         [TestCase("Motorbike")]
         public void VehicleHandlerTest(string vehicleType)
         {
-            Assert.AreEqual(vehicleType, VehicleHandler.GenerateVehicle(vehicleType).GetType());
+            Assert.AreEqual(vehicleType, VehicleCreator.GenerateVehicle(vehicleType).GetType());
         }
     }
 }

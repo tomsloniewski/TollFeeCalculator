@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using TollFeeCalculator.Calculator.Vehicles;
 
 namespace TollFeeCalculator
 {
@@ -19,7 +20,7 @@ namespace TollFeeCalculator
         public void GetTollFeeFreeVehicleTest()
         {
             // tests private IsTollFreeVehicle() method
-            Vehicle freeVehicle = new Motorbike();
+            IVehicle freeVehicle = new Motorbike();
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
             Assert.AreEqual(0, calculator.GetTollFee(paidDate, freeVehicle));
         }
@@ -28,7 +29,7 @@ namespace TollFeeCalculator
         public void GetTollFeePaidVehicleTest()
         {
             // tests private IsTollFreeVehicle() method
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
             Assert.AreEqual(8, calculator.GetTollFee(paidDate, paidVehicle));
         }
@@ -37,7 +38,7 @@ namespace TollFeeCalculator
         public void GetTollFeeNullVehicleTest()
         {
             // tests private IsTollFreeVehicle() method
-            Vehicle nullVehicle = null;
+            IVehicle nullVehicle = null;
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
             Assert.AreEqual(8, calculator.GetTollFee(paidDate, nullVehicle));
         }
@@ -47,61 +48,54 @@ namespace TollFeeCalculator
         {
             DateTime freeDate1 = new DateTime(2021, 1, 2, 6, 15, 0); // SATURDAY JANUARY 2 2021 06:15
             DateTime freeDate2 = new DateTime(2021, 1, 3, 6, 15, 0); // SUNDAY JANUARY 3 2021 06:15
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
 
             Assert.AreEqual(0, calculator.GetTollFee(freeDate1, paidVehicle));
             Assert.AreEqual(0, calculator.GetTollFee(freeDate2, paidVehicle));
         }
 
-        [Test]
-        public void GetTollFeePaidHoursEquivalencePartitionsNegativeTest()
+        [TestCase(5, 59)]
+        [TestCase(18, 30)]
+        public void GetTollFeePaidHoursEquivalencePartitionsNegativeTest(int hour, int minutes)
         {
-            DateTime freeHoursDate1 = new DateTime(2021, 1, 4, 5, 59, 0); // MONDAY JANUARY 4 2021 5:59
-            DateTime freeHoursDate2 = new DateTime(2021, 1, 4, 18, 30, 0); // MONDAY JANUARY 4 2021 18:30
+            DateTime freeHoursDate = new DateTime(2021, 1, 4, hour, minutes, 0); // MONDAY JANUARY 4 2021
 
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
 
-            Assert.AreEqual(0, calculator.GetTollFee(freeHoursDate1, paidVehicle));
-            Assert.AreEqual(0, calculator.GetTollFee(freeHoursDate2, paidVehicle));
+            Assert.AreEqual(0, calculator.GetTollFee(freeHoursDate, paidVehicle));
         }
 
-        [Test]
-        public void GetTollFeePaidHoursEquivalencePartitionsPositiveTest()
+        [TestCase(6, 0, 8)]
+        [TestCase(6, 29, 8)]
+        [TestCase(6, 30, 13)]
+        [TestCase(6, 59, 13)]
+        [TestCase(7, 0, 18)]
+        [TestCase(7, 59, 18)]
+        [TestCase(8, 0, 13)]
+        [TestCase(8, 29, 13)]
+        [TestCase(8, 30, 8)]
+        [TestCase(14, 59, 8)]
+        [TestCase(15, 0, 13)]
+        [TestCase(15, 29, 13)]
+        [TestCase(15, 30, 18)]
+        [TestCase(16, 59, 18)]
+        [TestCase(17, 0, 13)]
+        [TestCase(17, 59, 13)]
+        [TestCase(18, 0, 8)]
+        [TestCase(18, 29, 8)]
+        public void GetTollFeePaidHoursEquivalencePartitionsPositiveTest(int hour, int minutes, int fee)
         {
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
             // ALL DATES ON JANUARY 4 2021 (MONDAY)
-            Dictionary<DateTime, int> datesAndFees = new Dictionary<DateTime, int>()
-            {
-                { new DateTime(2021, 1, 4, 6, 0, 0), 8 },
-                { new DateTime(2021, 1, 4, 6, 29, 0), 8 },
-                { new DateTime(2021, 1, 4, 6, 30, 0), 13 },
-                { new DateTime(2021, 1, 4, 6, 59, 0), 13 },
-                { new DateTime(2021, 1, 4, 7, 0, 0), 18 },
-                { new DateTime(2021, 1, 4, 7, 59, 0), 18 },
-                { new DateTime(2021, 1, 4, 8, 0, 0), 13 },
-                { new DateTime(2021, 1, 4, 8, 29, 0), 13 },
-                { new DateTime(2021, 1, 4, 8, 30, 0), 8 },
-                { new DateTime(2021, 1, 4, 14, 59, 0), 8 },
-                { new DateTime(2021, 1, 4, 15, 0, 0), 13 },
-                { new DateTime(2021, 1, 4, 15, 29, 0), 13 },
-                { new DateTime(2021, 1, 4, 15, 30, 0), 18 },
-                { new DateTime(2021, 1, 4, 16, 59, 0), 18 },
-                { new DateTime(2021, 1, 4, 17, 0, 0), 13 },
-                { new DateTime(2021, 1, 4, 17, 59, 0), 13 },
-                { new DateTime(2021, 1, 4, 18, 0, 0), 8 },
-                { new DateTime(2021, 1, 4, 18, 29, 0), 8 },
-            };
+            DateTime date = new DateTime(2021, 1, 4, hour, minutes, 0);
 
-            foreach(KeyValuePair<DateTime, int> pair in datesAndFees)
-            {
-                Assert.AreEqual(pair.Value, calculator.GetTollFee(pair.Key, paidVehicle));
-            }
+            Assert.AreEqual(fee, calculator.GetTollFee(date, paidVehicle));
         }
 
         [Test]
         public void GetTollFeeMultiDatesUnder60Test()
         {
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
             DateTime[] paidDates =
             {
                 new DateTime(2021, 1, 4, 6, 0, 0), // fee: 8
@@ -118,7 +112,7 @@ namespace TollFeeCalculator
         [Test]
         public void GetTollFeeMultiDatesOver60Test()
         {
-            Vehicle paidVehicle = new Car();
+            IVehicle paidVehicle = new Car();
             DateTime[] paidDates =
             {
                 new DateTime(2021, 1, 4, 6, 0, 0), // fee: 8
@@ -133,56 +127,44 @@ namespace TollFeeCalculator
             Assert.AreEqual(60, calculator.GetTollFee(paidVehicle, paidDates));
         }
 
-        [Test]
-        public void IsTollFeeDateDatesPositiveTest()
+        [TestCase(2013, 1, 1)]
+        [TestCase(2013, 3, 28)]
+        [TestCase(2013, 3, 29)]
+        [TestCase(2013, 4, 1)]
+        [TestCase(2013, 4, 30)]
+        [TestCase(2013, 5, 1)]
+        [TestCase(2013, 5, 8)]
+        [TestCase(2013, 5, 9)]
+        [TestCase(2013, 6, 5)]
+        [TestCase(2013, 6, 6)]
+        [TestCase(2013, 6, 21)]
+        [TestCase(2013, 7, 15)]
+        [TestCase(2013, 7, 18)]
+        [TestCase(2013, 11, 1)]
+        [TestCase(2013, 12, 24)]
+        [TestCase(2013, 12, 25)]
+        [TestCase(2013, 12, 26)]
+        [TestCase(2013, 12, 31)]
+        public void IsTollFeeDateDatesPositiveTest(int year, int month, int day)
         {
-            DateTime[] freeDates =
-            {
-                new DateTime(2013, 1, 1, 6, 15, 0),
-                new DateTime(2013, 3, 28, 6, 15, 0),
-                new DateTime(2013, 3, 29, 6, 15, 0),
-                new DateTime(2013, 4, 1, 6, 15, 0),
-                new DateTime(2013, 4, 30, 6, 15, 0),
-                new DateTime(2013, 5, 1, 6, 15, 0),
-                new DateTime(2013, 5, 8, 6, 15, 0),
-                new DateTime(2013, 5, 9, 6, 15, 0),
-                new DateTime(2013, 6, 5, 6, 15, 0),
-                new DateTime(2013, 6, 6, 6, 15, 0),
-                new DateTime(2013, 6, 21, 6, 15, 0),
-                new DateTime(2013, 7, 15, 6, 15, 0),
-                new DateTime(2013, 7, 18, 6, 15, 0),
-                new DateTime(2013, 11, 1, 6, 15, 0),
-                new DateTime(2013, 12, 24, 6, 15, 0),
-                new DateTime(2013, 12, 25, 6, 15, 0),
-                new DateTime(2013, 12, 26, 6, 15, 0),
-                new DateTime(2013, 12, 31, 6, 15, 0)
-            };
+            DateTime freeDate = new DateTime(year, month, day, 6, 15, 0);
 
-            foreach (DateTime date in freeDates)
-            {
-                Assert.IsTrue(calculator.IsTollFreeDate(date));
-            }
+            Assert.IsTrue(calculator.IsTollFreeDate(freeDate));
         }
 
-        [Test]
-        public void IsTollFreeDateWeekendPositiveTest()
+        [TestCase(2021, 6, 19)] // Saturday
+        [TestCase(2021, 6, 20)] // Sunday
+        public void IsTollFreeDateWeekendPositiveTest(int year, int month, int day)
         {
-            DateTime[] freeDates =
-            {
-                new DateTime(2021, 6, 19, 6, 15, 0), // SATURDAY
-                new DateTime(2021, 6, 20, 6, 15, 0) // SUNDAY
-            };
+            DateTime freeDate = new DateTime(year, month, day, 6, 15, 0);
 
-            foreach (DateTime date in freeDates)
-            {
-                Assert.IsTrue(calculator.IsTollFreeDate(date));
-            }
+            Assert.IsTrue(calculator.IsTollFreeDate(freeDate));
         }
 
-        [Test]
-        public void IsTollFreeDateNegativeTest()
+        [TestCase(2021, 1, 4)] // Monday
+        public void IsTollFreeDateNegativeTest(int year, int month, int day)
         {
-            DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY
+            DateTime paidDate = new DateTime(year, month, day, 6, 15, 0);
 
             Assert.IsFalse(calculator.IsTollFreeDate(paidDate));
         }

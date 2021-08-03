@@ -1,4 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
+using System.IO;
+using System.Linq;
+using TollFeeCalculator.Calculator.Helpers;
+using TollFeeCalculator.Calculator.Vehicles;
 
 namespace TollFeeCalculator
 {
@@ -12,7 +17,7 @@ namespace TollFeeCalculator
          * @return - the total toll fee for that day
          */
 
-        public int GetTollFee(Vehicle vehicle, DateTime[] dates)
+        public int GetTollFee(IVehicle vehicle, DateTime[] dates)
         {
             DateTime intervalStart = dates[0];
             int totalFee = 0;
@@ -41,19 +46,14 @@ namespace TollFeeCalculator
             return totalFee;
         }
 
-        private bool IsTollFreeVehicle(Vehicle vehicle)
-        {
-            if (vehicle == null) return false;
-            string vehicleType = vehicle.GetType();
-            return vehicleType.Equals(TollFreeVehicles.Motorbike.ToString()) ||
-                   vehicleType.Equals(TollFreeVehicles.Tractor.ToString()) ||
-                   vehicleType.Equals(TollFreeVehicles.Emergency.ToString()) ||
-                   vehicleType.Equals(TollFreeVehicles.Diplomat.ToString()) ||
-                   vehicleType.Equals(TollFreeVehicles.Foreign.ToString()) ||
-                   vehicleType.Equals(TollFreeVehicles.Military.ToString());
-        }
-
-        public int GetTollFee(DateTime date, Vehicle vehicle)
+        /**
+         * Calculate the toll fee for one vehicle pass
+         * 
+         * @param date - date and time of the current pass of the vehicle
+         * @param vehicle - the vehicle
+         * @return - the toll fee for the particular pass
+         */
+        public int GetTollFee(DateTime date, IVehicle vehicle)
         {
             if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle)) return 0;
 
@@ -64,40 +64,67 @@ namespace TollFeeCalculator
             else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
             else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
             else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-            else if ((hour == 8 && minute >= 30 && minute < 59) || (hour >= 9 && hour <= 14 && minute <= 59)) return 8;
+            else if ((hour == 8 && minute >= 30 && minute < 59) 
+                || (hour >= 9 && hour <= 14 && minute <= 59)) return 8;
             else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-            else if ((hour == 15 && minute >= 30 && minute < 59) || (hour == 16 && minute <= 59)) return 18;
+            else if ((hour == 15 && minute >= 30 && minute < 59) 
+                || (hour == 16 && minute <= 59)) return 18;
             else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
             else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
             else return 0;
         }
 
+        /**
+         * Checks if the vehicle should pay the toll the particular day
+         * 
+         * @param date - date and time of the current pass of the vehicle
+         * @return - boolean value if the vehicle should pay
+         */
         public bool IsTollFreeDate(DateTime date)
         {
             int year = date.Year;
             int month = date.Month;
             int day = date.Day;
 
-            DayOfWeek dayOfWeek = date.DayOfWeek;
+            // Checks if the date is Saturday or Sunday
+            DayOfWeek dayOfWeek = new DateTime(year, month, day).DayOfWeek;
             if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday) return true;
-            
-            if (year == 2013)
+
+            // Checks if the date is listed under freeDates.json
+            string path = Directory.GetCurrentDirectory() + "\\Calculator\\Helpers\\freeDates.json";
+            JObject jsonFile = JObject.Parse(File.ReadAllText(path));
+            JToken dates;
+
+            try
             {
-                if (month == 1 && day == 1 ||
-                    month == 3 && (day == 28 || day == 29) ||
-                    month == 4 && (day == 1 || day == 30) ||
-                    month == 5 && (day == 1 || day == 8  || day == 9) ||
-                    month == 6 && (day == 5 || day == 6 || day == 21) ||
-                    month == 7 ||
-                    month == 11 && day == 1 ||
-                    month == 12 && (day == 24 || day == 25 || day == 26 || day == 31))
-                {
-                    return true;
-                }
+                dates = jsonFile["dates"][year.ToString()][month.ToString()];
             }
-            return false;
+            catch (Exception)
+            {
+                // the year/month entry was not found
+                return false;
+            }
+
+            if (dates.Values().Any() is false) return true; // the month entry was found, empty array means the whole month is free
+            else if (dates.Values().Contains(day.ToString())) return true; // the entry year/month/day was found
+            else return false;
         }
 
+        /**
+         * Checks if the provided vehicle is free of charge
+         * 
+         * @param vehicle - the vehicle
+         * @return - boolean value if the vehicle is free of charge
+         */
+        private bool IsTollFreeVehicle(IVehicle vehicle)
+        {
+            if (vehicle == null) return false;
+            return vehicle is IFreeVehicle;
+        }
+
+        /**
+         *  Toll free vehicles definition
+         */
         private enum TollFreeVehicles
         {
             Motorbike,

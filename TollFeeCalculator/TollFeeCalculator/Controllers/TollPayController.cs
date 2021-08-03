@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using TollFeeCalculator.Helpers;
+using TollFeeCalculator.Calculator.Vehicles;
+using TollFeeCalculator.Calculator.Helpers;
 using TollFeeCalculator.Models;
 
 namespace TollFeeCalculator.Controllers
@@ -20,14 +21,14 @@ namespace TollFeeCalculator.Controllers
             _calculator = new TollCalculator();
         }
 
-        // GET: api/TollPayItems/KR98K12
+        // GET: api/TollPayItems/{plate}
         [HttpGet("{plate}")]
         public async Task<ActionResult<string>> GetTollPayItem(string plate)
         {
             IAsyncEnumerable<TollPay> asyncEnumerable = _context.TollPayItems.AsAsyncEnumerable();
             List<DateTime> timestamps = new List<DateTime>();
             string carType = "";
-            Vehicle vehicle;
+            IVehicle vehicle;
 
             await foreach (var tollPayItem in asyncEnumerable)
             {
@@ -38,7 +39,7 @@ namespace TollFeeCalculator.Controllers
                 }
             }
 
-            vehicle = VehicleHandler.GenerateVehicle(carType);
+            vehicle = VehicleCreator.GenerateVehicle(carType);
             if (timestamps.Count > 0)
             {
                 return _calculator.GetTollFee(vehicle, timestamps.ToArray()).ToString();
