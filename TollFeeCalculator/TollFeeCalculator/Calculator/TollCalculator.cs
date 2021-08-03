@@ -121,17 +121,5 @@ namespace TollFeeCalculator
             if (vehicle == null) return false;
             return vehicle is IFreeVehicle;
         }
-
-        /**
-         *  Toll free vehicles definition
-         */
-        private enum TollFreeVehicles
-        {
-            Motorbike,
-            Tractor,
-            Emergency,
-            Diplomat,Foreign,
-            Military
-        }
     }
 }
