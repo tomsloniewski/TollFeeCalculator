@@ -13,13 +13,11 @@ namespace TollFeeCalculator.Controllers
     {
         private readonly ITollPayService _tollPayService;
         private readonly TollPayContext _context;
-        //private readonly TollCalculator _calculator;
 
         public TollPayController(TollPayContext context, ITollPayService tollPayService)
         {
             _tollPayService = tollPayService ?? throw new ArgumentNullException(nameof(_tollPayService));
             _context = context ?? throw new ArgumentNullException(nameof(_context));
-            //_calculator = new TollCalculator();
         }
 
         // GET: api/TollPayItems/{plate}
