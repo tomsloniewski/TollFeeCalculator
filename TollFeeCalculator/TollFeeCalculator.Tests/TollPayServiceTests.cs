@@ -1,19 +1,19 @@
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using TollFeeCalculator.Calculator.Vehicles;
+using TollFeeCalculator.Services;
 
 namespace TollFeeCalculator
 {
     [TestFixture]
-    public class TollCalculatorTests
+    public class TollPayServiceTests
     {
-        private TollCalculator calculator;
+        private ITollPayService _service;
 
         [OneTimeSetUp]
         public void Setup()
         {
-            calculator = new TollCalculator();
+            _service = new TollPayService();
         }
 
         [Test]
@@ -22,7 +22,7 @@ namespace TollFeeCalculator
             // tests private IsTollFreeVehicle() method
             IVehicle freeVehicle = new Motorbike();
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
-            Assert.AreEqual(0, calculator.GetTollFee(paidDate, freeVehicle));
+            Assert.AreEqual(0, _service.GetTollFee(paidDate, freeVehicle));
         }
 
         [Test]
@@ -31,7 +31,7 @@ namespace TollFeeCalculator
             // tests private IsTollFreeVehicle() method
             IVehicle paidVehicle = new Car();
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
-            Assert.AreEqual(8, calculator.GetTollFee(paidDate, paidVehicle));
+            Assert.AreEqual(8, _service.GetTollFee(paidDate, paidVehicle));
         }
 
         [Test]
@@ -40,7 +40,7 @@ namespace TollFeeCalculator
             // tests private IsTollFreeVehicle() method
             IVehicle nullVehicle = null;
             DateTime paidDate = new DateTime(2021, 1, 4, 6, 15, 0); // MONDAY JANUARY 4 2021 06:15
-            Assert.AreEqual(8, calculator.GetTollFee(paidDate, nullVehicle));
+            Assert.AreEqual(8, _service.GetTollFee(paidDate, nullVehicle));
         }
 
         [Test]
@@ -50,8 +50,8 @@ namespace TollFeeCalculator
             DateTime freeDate2 = new DateTime(2021, 1, 3, 6, 15, 0); // SUNDAY JANUARY 3 2021 06:15
             IVehicle paidVehicle = new Car();
 
-            Assert.AreEqual(0, calculator.GetTollFee(freeDate1, paidVehicle));
-            Assert.AreEqual(0, calculator.GetTollFee(freeDate2, paidVehicle));
+            Assert.AreEqual(0, _service.GetTollFee(freeDate1, paidVehicle));
+            Assert.AreEqual(0, _service.GetTollFee(freeDate2, paidVehicle));
         }
 
         [TestCase(5, 59)]
@@ -62,7 +62,7 @@ namespace TollFeeCalculator
 
             IVehicle paidVehicle = new Car();
 
-            Assert.AreEqual(0, calculator.GetTollFee(freeHoursDate, paidVehicle));
+            Assert.AreEqual(0, _service.GetTollFee(freeHoursDate, paidVehicle));
         }
 
         [TestCase(6, 0, 8)]
@@ -89,7 +89,7 @@ namespace TollFeeCalculator
             // ALL DATES ON JANUARY 4 2021 (MONDAY)
             DateTime date = new DateTime(2021, 1, 4, hour, minutes, 0);
 
-            Assert.AreEqual(fee, calculator.GetTollFee(date, paidVehicle));
+            Assert.AreEqual(fee, _service.GetTollFee(date, paidVehicle));
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace TollFeeCalculator
                 new DateTime(2021, 1, 4, 18, 0, 0), // fee: 42 + 8 = 50
             };
 
-            Assert.AreEqual(50, calculator.GetTollFee(paidVehicle, paidDates));
+            Assert.AreEqual(50, _service.GetTollFee(paidVehicle, paidDates));
         }
 
         [Test]
@@ -124,7 +124,7 @@ namespace TollFeeCalculator
                 new DateTime(2021, 1, 4, 18, 0, 0) // fee: 60 + 8 = 68 -> max 60
             };
 
-            Assert.AreEqual(60, calculator.GetTollFee(paidVehicle, paidDates));
+            Assert.AreEqual(60, _service.GetTollFee(paidVehicle, paidDates));
         }
 
         [TestCase(2013, 1, 1)]
@@ -149,7 +149,7 @@ namespace TollFeeCalculator
         {
             DateTime freeDate = new DateTime(year, month, day, 6, 15, 0);
 
-            Assert.IsTrue(calculator.IsTollFreeDate(freeDate));
+            Assert.IsTrue(_service.IsTollFreeDate(freeDate));
         }
 
         [TestCase(2021, 6, 19)] // Saturday
@@ -158,7 +158,7 @@ namespace TollFeeCalculator
         {
             DateTime freeDate = new DateTime(year, month, day, 6, 15, 0);
 
-            Assert.IsTrue(calculator.IsTollFreeDate(freeDate));
+            Assert.IsTrue(_service.IsTollFreeDate(freeDate));
         }
 
         [TestCase(2021, 1, 4)] // Monday
@@ -166,7 +166,7 @@ namespace TollFeeCalculator
         {
             DateTime paidDate = new DateTime(year, month, day, 6, 15, 0);
 
-            Assert.IsFalse(calculator.IsTollFreeDate(paidDate));
+            Assert.IsFalse(_service.IsTollFreeDate(paidDate));
         }
     }
 }

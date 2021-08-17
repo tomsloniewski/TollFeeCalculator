@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using TollFeeCalculator.Calculator.Vehicles;
-using TollFeeCalculator.Calculator.Helpers;
 using TollFeeCalculator.Models;
+using TollFeeCalculator.Services;
 
 namespace TollFeeCalculator.Controllers
 {
@@ -12,42 +11,25 @@ namespace TollFeeCalculator.Controllers
     [Route("api/[controller]")]
     public class TollPayController : ControllerBase
     {
+        private readonly ITollPayService _tollPayService;
         private readonly TollPayContext _context;
-        private readonly TollCalculator _calculator;
+        //private readonly TollCalculator _calculator;
 
-        public TollPayController(TollPayContext context)
+        public TollPayController(TollPayContext context, ITollPayService tollPayService)
         {
-            _context = context;
-            _calculator = new TollCalculator();
+            _tollPayService = tollPayService ?? throw new ArgumentNullException(nameof(_tollPayService));
+            _context = context ?? throw new ArgumentNullException(nameof(_context));
+            //_calculator = new TollCalculator();
         }
 
         // GET: api/TollPayItems/{plate}
         [HttpGet("{plate}")]
         public async Task<ActionResult<string>> GetTollPayItem(string plate)
         {
-            IAsyncEnumerable<TollPay> asyncEnumerable = _context.TollPayItems.AsAsyncEnumerable();
-            List<DateTime> timestamps = new List<DateTime>();
-            string carType = "";
-            IVehicle vehicle;
+            IAsyncEnumerable<TollPay> tollPayItems = _context.TollPayItems.AsAsyncEnumerable();
+            string tollPayString = await _tollPayService.GetTollPay(tollPayItems, plate);
 
-            await foreach (var tollPayItem in asyncEnumerable)
-            {
-                if (carType.Length == 0) carType = tollPayItem.Type;
-                if (tollPayItem.Plate == plate)
-                {
-                    timestamps.Add(tollPayItem.Timestamp);
-                }
-            }
-
-            vehicle = VehicleCreator.GenerateVehicle(carType);
-            if (timestamps.Count > 0)
-            {
-                return _calculator.GetTollFee(vehicle, timestamps.ToArray()).ToString();
-            }
-            else
-            {
-                return "No data found";
-            }
+            return tollPayString;
         }
 
         // POST: api/TollPayItems
@@ -56,7 +38,7 @@ namespace TollFeeCalculator.Controllers
         {
             _context.TollPayItems.Add(tollPayItem);
             await _context.SaveChangesAsync();
-            
+
             return CreatedAtAction(nameof(PostTollPayItem), new { id = tollPayItem.Id }, tollPayItem);
         }
     }

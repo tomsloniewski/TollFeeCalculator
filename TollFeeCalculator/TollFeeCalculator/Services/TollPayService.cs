@@ -1,13 +1,16 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using TollFeeCalculator.Calculator.Helpers;
 using TollFeeCalculator.Calculator.Vehicles;
+using TollFeeCalculator.Models;
 
-namespace TollFeeCalculator
+namespace TollFeeCalculator.Services
 {
-    public class TollCalculator
+    public class TollPayService : ITollPayService
     {
         /**
          * Calculate the total toll fee for one day
@@ -16,13 +19,12 @@ namespace TollFeeCalculator
          * @param dates - date and time of all passes on one day
          * @return - the total toll fee for that day
          */
-
         public int GetTollFee(IVehicle vehicle, DateTime[] dates)
         {
             DateTime intervalStart = dates[0];
             int totalFee = 0;
 
-            foreach(DateTime date in dates)
+            foreach (DateTime date in dates)
             {
                 int nextFee = GetTollFee(date, vehicle);
                 int tempFee = GetTollFee(intervalStart, vehicle);
@@ -64,14 +66,40 @@ namespace TollFeeCalculator
             else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
             else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
             else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-            else if ((hour == 8 && minute >= 30 && minute < 59) 
+            else if ((hour == 8 && minute >= 30 && minute < 59)
                 || (hour >= 9 && hour <= 14 && minute <= 59)) return 8;
             else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-            else if ((hour == 15 && minute >= 30 && minute < 59) 
+            else if ((hour == 15 && minute >= 30 && minute < 59)
                 || (hour == 16 && minute <= 59)) return 18;
             else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
             else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
             else return 0;
+        }
+
+        public async Task<string> GetTollPay(IAsyncEnumerable<TollPay> tollPayItems, string plate)
+        {
+            List<DateTime> timestamps = new List<DateTime>();
+            string carType = "";
+            IVehicle vehicle;
+
+            await foreach (var tollPayItem in tollPayItems)
+            {
+                if (carType.Length == 0) carType = tollPayItem.Type;
+                if (tollPayItem.Plate == plate)
+                {
+                    timestamps.Add(tollPayItem.Timestamp);
+                }
+            }
+
+            vehicle = VehicleCreator.GenerateVehicle(carType);
+            if (timestamps.Count > 0)
+            {
+                return GetTollFee(vehicle, timestamps.ToArray()).ToString();
+            }
+            else
+            {
+                return "No data found";
+            }
         }
 
         /**
@@ -116,7 +144,7 @@ namespace TollFeeCalculator
          * @param vehicle - the vehicle
          * @return - boolean value if the vehicle is free of charge
          */
-        private bool IsTollFreeVehicle(IVehicle vehicle)
+        public bool IsTollFreeVehicle(IVehicle vehicle)
         {
             if (vehicle == null) return false;
             return vehicle is IFreeVehicle;
